@@ -102,26 +102,8 @@ public class JSQL {
                         showHelp();
                         continue;
                     }
-                    try (var statement = connection.createStatement()) {
-                        if (statement.execute(line)) {
-                            var resultSet = statement.getResultSet();
-                            final ResultSetMetaData metaData = resultSet.getMetaData();
-    
-                            while (resultSet.next()) {
-                                for (int i = 0; i < metaData.getColumnCount(); ++i) {
-                                    System.out.print(metaData.getColumnName(i + 1));
-                                    System.out.print(": ");
-                                    final Object object = resultSet.getObject(i + 1);
-                                    System.out.println((object != null) ? object.toString() : "null");
-                                }
-        
-                                System.out.println("");
-                            }
-                        } else {
-                            System.out.println(statement.getUpdateCount() + " row(s) affected.");
-                            continue;
-                        }
-                    }
+
+                    runScript(line, connection, false);
                 } catch (SQLException nextException) {
                     do {
                         System.out.println(nextException.getMessage());
@@ -159,7 +141,7 @@ public class JSQL {
 
                 if (matcher.find()) {
                         //End of script
-                        runScript(script.toString(), connection);
+                        runScript(script.toString(), connection, true);
                         //Clear script
                         script.setLength(0);
                 }
@@ -167,10 +149,30 @@ public class JSQL {
         }
     }
 
-    private static void runScript(String script, Connection connection) throws Exception {
-        System.out.println(script);
+    private static void runScript(String script, Connection connection, boolean echoBack) throws Exception {
+        if (echoBack) {
+            System.out.println(script);
+        }
 
-        System.out.println("*******");
+        try (var statement = connection.createStatement()) {
+            if (statement.execute(script)) {
+                var resultSet = statement.getResultSet();
+                final ResultSetMetaData metaData = resultSet.getMetaData();
+
+                while (resultSet.next()) {
+                    for (int i = 0; i < metaData.getColumnCount(); ++i) {
+                        System.out.print(metaData.getColumnName(i + 1));
+                        System.out.print(": ");
+                        final Object object = resultSet.getObject(i + 1);
+                        System.out.println((object != null) ? object.toString() : "null");
+                    }
+
+                    System.out.println("");
+                }
+            } else {
+                System.out.println(statement.getUpdateCount() + " row(s) affected.");
+            }
+        }
     }
 
     static Optional<String> getArgValue(String[] args, String argName) {
