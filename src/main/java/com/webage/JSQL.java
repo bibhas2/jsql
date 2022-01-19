@@ -3,11 +3,16 @@ package com.webage;
 import java.sql.ResultSetMetaData;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.DriverManager;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
@@ -26,6 +31,8 @@ public class JSQL {
     }
     
     public static void main(final String[] args) {
+        Connection connection = null;
+
         try {
             String config = args.length > 0 ? args[0] + "." : "";
             Terminal terminal = TerminalBuilder.terminal();
@@ -48,7 +55,16 @@ public class JSQL {
 
             Class.forName(driver).newInstance();
 
-            final Connection connection = DriverManager.getConnection(url, user, password);
+            connection = DriverManager.getConnection(url, user, password);
+
+            var scriptFile = getArgValue(args, "-f");
+
+            if (scriptFile.isPresent()) {
+                loadScriptFile(scriptFile.get(), connection);
+
+                return;
+            }
+
             Statement statement = null;
             ResultSet resultSet = null;
 
@@ -131,12 +147,59 @@ public class JSQL {
                     }
                 }
             }
-
-            connection.close();
         } catch (EndOfFileException eof) {
             //Bye!
         } catch (Exception ex) {
             ex.printStackTrace();
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
+    }
+
+    private static void loadScriptFile(String scriptFile, Connection connection) throws Exception {
+        try (var br = new BufferedReader(new FileReader(scriptFile))) {
+            String line;
+            StringBuffer script = new StringBuffer();
+            var pattern = Pattern.compile(";\\s*$");
+
+            while ((line = br.readLine()) != null) {
+                script.append(line);
+
+                var matcher = pattern.matcher(line);
+
+                if (matcher.find()) {
+                        //End of script
+                        runScript(script.toString(), connection);
+                        //Clear script
+                        script.setLength(0);
+                }
+            }
+        }
+    }
+
+    private static void runScript(String script, Connection connection) throws Exception {
+        System.out.println(script);
+        System.out.println("*******");
+    }
+
+    static Optional<String> getArgValue(String[] args, String argName) {
+        return Stream
+            .of(args)
+            .dropWhile(a -> !a.equals(argName))
+            .skip(1)
+            .findFirst();
+    }
+    static boolean hasArg(String[] args, String argName) {
+        return Stream
+            .of(args)
+            .filter(a -> a.equals(argName))
+            .findFirst()
+            .isPresent();
     }
 }
