@@ -65,9 +65,6 @@ public class JSQL {
                 return;
             }
 
-            Statement statement = null;
-            ResultSet resultSet = null;
-
             while (true) {
                 String line = reader.readLine("> ");
 
@@ -85,9 +82,6 @@ public class JSQL {
                 }
 
                 try {
-                    resultSet = null;
-                    statement = null;
-
                     if (line.equals("begin")) {
                         connection.setAutoCommit(false);
                         System.out.println("Transaction started.");
@@ -108,26 +102,25 @@ public class JSQL {
                         showHelp();
                         continue;
                     }
-                    statement = connection.createStatement();
-                    if (statement.execute(line)) {
-                        resultSet = statement.getResultSet();
-                    }
-                    if (resultSet == null) {
-                        System.out.println(statement.getUpdateCount() + " row(s) affected.");
-                        continue;
-                    }
-
-                    final ResultSetMetaData metaData = resultSet.getMetaData();
-
-                    while (resultSet.next()) {
-                        for (int i = 0; i < metaData.getColumnCount(); ++i) {
-                            System.out.print(metaData.getColumnName(i + 1));
-                            System.out.print(": ");
-                            final Object object = resultSet.getObject(i + 1);
-                            System.out.println((object != null) ? object.toString() : "null");
+                    try (var statement = connection.createStatement()) {
+                        if (statement.execute(line)) {
+                            var resultSet = statement.getResultSet();
+                            final ResultSetMetaData metaData = resultSet.getMetaData();
+    
+                            while (resultSet.next()) {
+                                for (int i = 0; i < metaData.getColumnCount(); ++i) {
+                                    System.out.print(metaData.getColumnName(i + 1));
+                                    System.out.print(": ");
+                                    final Object object = resultSet.getObject(i + 1);
+                                    System.out.println((object != null) ? object.toString() : "null");
+                                }
+        
+                                System.out.println("");
+                            }
+                        } else {
+                            System.out.println(statement.getUpdateCount() + " row(s) affected.");
+                            continue;
                         }
-
-                        System.out.println("");
                     }
                 } catch (SQLException nextException) {
                     do {
@@ -135,16 +128,7 @@ public class JSQL {
                         nextException = nextException.getNextException();
                     } while (nextException != null);
                     continue;
-                }
-                finally {
-                    if (resultSet != null) {
-                        resultSet.close();
-                        resultSet = null;
-                    }
-                    if (statement != null) {
-                        statement.close();
-                        statement = null;
-                    }
+                } finally {
                 }
             }
         } catch (EndOfFileException eof) {
@@ -185,6 +169,7 @@ public class JSQL {
 
     private static void runScript(String script, Connection connection) throws Exception {
         System.out.println(script);
+
         System.out.println("*******");
     }
 
