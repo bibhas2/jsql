@@ -135,6 +135,10 @@ public class JSQL {
             var pattern = Pattern.compile(";\\s*$");
 
             while ((line = br.readLine()) != null) {
+                if (script.length() > 0) {
+                    script.append("\n");
+                }
+                
                 script.append(line);
 
                 var matcher = pattern.matcher(line);
