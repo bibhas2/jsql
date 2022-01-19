@@ -135,17 +135,27 @@ public class JSQL {
             var pattern = Pattern.compile(";\\s*$");
 
             while ((line = br.readLine()) != null) {
+                if (line.startsWith("--")) {
+                    //Comment
+                    continue;
+                }
+
                 if (script.length() > 0) {
                     script.append("\n");
                 }
-                
+
                 script.append(line);
 
                 var matcher = pattern.matcher(line);
 
                 if (matcher.find()) {
                         //End of script
-                        runScript(script.toString(), connection, true);
+                        try {
+                            runScript(script.toString(), connection, true);                            
+                        } catch (SQLException e) {
+                            System.out.println(e.getMessage());
+                        }
+                        
                         //Clear script
                         script.setLength(0);
                 }
@@ -155,7 +165,7 @@ public class JSQL {
 
     private static void runScript(String script, Connection connection, boolean echoBack) throws Exception {
         if (echoBack) {
-            System.out.println(script);
+            System.out.printf("\n%s\n", script);
         }
 
         try (var statement = connection.createStatement()) {
