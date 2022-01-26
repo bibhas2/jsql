@@ -103,7 +103,7 @@ public class JSQL {
                         continue;
                     }
 
-                    runScript(line, connection, false);
+                    runScript(line, connection);
                 } catch (SQLException nextException) {
                     do {
                         System.out.println(nextException.getMessage());
@@ -140,34 +140,37 @@ public class JSQL {
                     continue;
                 }
 
-                if (script.length() > 0) {
-                    script.append("\n");
-                }
-
-                script.append(line);
+                //Echo the line back
+                System.out.printf("%s\n", line);
 
                 var matcher = pattern.matcher(line);
 
+                //See if we have reached the end of the SQL.
                 if (matcher.find()) {
-                        //End of script
-                        try {
-                            runScript(script.toString(), connection, true);                            
-                        } catch (SQLException e) {
-                            System.out.println(e.getMessage());
-                        }
-                        
-                        //Clear script
-                        script.setLength(0);
+                    //Get rid of the ;
+                    line = matcher.replaceAll("");
+
+                    script.append(line);
+
+                    //End of script
+                    try {
+                        runScript(script.toString(), connection);                            
+                    } catch (SQLException e) {
+                        System.out.println(e.getMessage());
+                    }
+                    
+                    //Clear script
+                    script.setLength(0);
+                } else {
+                    script.append(line);
+                    //Add a separator
+                    script.append(" ");
                 }
             }
         }
     }
 
-    private static void runScript(String script, Connection connection, boolean echoBack) throws Exception {
-        if (echoBack) {
-            System.out.printf("\n%s\n", script);
-        }
-
+    private static void runScript(String script, Connection connection) throws Exception {
         try (var statement = connection.createStatement()) {
             if (statement.execute(script)) {
                 var resultSet = statement.getResultSet();
