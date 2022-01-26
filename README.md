@@ -1,5 +1,5 @@
 # JSQL - Java Command Line SQL Client
-JSQL is a command line SQL client that uses JDBC. It is a developer oriented tool. For example, each column in a row is printed in its
+JSQL is a command line SQL client that uses JDBC. It is a developer oriented tool. For example, each column is printed in its
 own line. 
 
 ```
@@ -72,3 +72,16 @@ You can enter any SQL at this point. There are a few special commands.
 - begin - begin transaction.
 - commit - commit transaction.
 - rollback - abort transaction.
+
+## Loading a Script File
+
+To load a script file named ``script.sql`` run:
+
+```
+./jsql.sh mysql -f script.sql
+```
+
+The script file can follow the usual convention, such as:
+
+- Each SQL is terminated by a semicolor ";".
+- Comment lines need to start with "--".
