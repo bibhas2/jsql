@@ -178,7 +178,7 @@ public class JSQL {
 
                 while (resultSet.next()) {
                     for (int i = 0; i < metaData.getColumnCount(); ++i) {
-                        System.out.print(metaData.getColumnName(i + 1));
+                        System.out.print(metaData.getColumnLabel(i + 1));
                         System.out.print(": ");
                         final Object object = resultSet.getObject(i + 1);
                         System.out.println((object != null) ? object.toString() : "null");
