@@ -85,3 +85,10 @@ The script file can follow the usual convention, such as:
 
 - Each SQL is terminated by a semicolor ";".
 - Comment lines need to start with "--".
+
+## Exporting to CSV
+You can format the output of a query as a CSV file.
+
+```
+./jsql.sh mysql -e "select * from CUSTOMER"
+```
