@@ -1,13 +1,13 @@
 package com.webage;
 
-import java.sql.ResultSetMetaData;
-import java.sql.ResultSet;
-import java.sql.Statement;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileReader;
+import java.io.OutputStreamWriter;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.sql.DriverManager;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.ResourceBundle;
@@ -21,6 +21,8 @@ import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.reader.impl.history.DefaultHistory;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.supercsv.io.CsvListWriter;
+import org.supercsv.prefs.CsvPreference;
 
 public class JSQL {
     static void showHelp() {
@@ -61,6 +63,14 @@ public class JSQL {
 
             if (scriptFile.isPresent()) {
                 loadScriptFile(scriptFile.get(), connection);
+
+                return;
+            }
+
+            var exportQuery = getArgValue(args, "-e");
+
+            if (exportQuery.isPresent()) {
+                exportQuery(exportQuery.get(), connection);
 
                 return;
             }
@@ -167,6 +177,43 @@ public class JSQL {
                     script.append(" ");
                 }
             }
+        }
+    }
+
+    private static void exportQuery(String sql, Connection connection) throws Exception {
+        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(System.out));
+        
+        try (var statement = connection.createStatement(); var csv = new CsvListWriter(writer, CsvPreference.STANDARD_PREFERENCE)) {
+            if (!statement.execute(sql)) {
+                return;
+            }
+
+            var resultSet = statement.getResultSet();
+            String[] headers = null;
+            Object[] row = null;
+            
+            while (resultSet.next()) {
+                var metaData = resultSet.getMetaData();
+
+                if (headers == null) {
+                    headers = new String[metaData.getColumnCount()];
+                    row = new Object[metaData.getColumnCount()];
+        
+                    for (int i = 0; i < metaData.getColumnCount(); ++i) {
+                        headers[i] = metaData.getColumnLabel(i + 1);
+                    }
+                    
+                    csv.writeHeader(headers);
+                }
+
+                for (int i = 0; i < metaData.getColumnCount(); ++i) {
+                    row[i] = resultSet.getObject(i + 1);
+                }
+
+                csv.write(row);
+            }
+
+            writer.flush();
         }
     }
 
